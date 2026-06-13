@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lily's Animal Sanctuary</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #1a0a2e; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+    #game { width: 380px; max-width: 100vw; font-family: 'Courier New', monospace; background: #1a0a2e; color: #fff; user-select: none; overflow: hidden; min-height: 100vh; position: relative; }
+    .screen { display: none; width: 100%; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* TITLE */
+    #title-screen { align-items: center; justify-content: center; background: linear-gradient(180deg,#0d1b2a 0%,#1a3a2a 60%,#2d5a1b 100%); }
+    .title-logo { font-size: 24px; font-weight: bold; color: #ffd700; text-shadow: 3px 3px #8b6914; letter-spacing: 2px; text-align: center; margin-bottom: 4px; line-height: 1.4; }
+    .title-sub { font-size: 11px; color: #90ee90; letter-spacing: 3px; margin-bottom: 32px; }
+    .pixel-btn { background: #2d8a4a; border: 3px solid #90ee90; color: #fff; font-family: 'Courier New', monospace; font-size: 14px; padding: 12px 32px; cursor: pointer; letter-spacing: 2px; border-radius: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+    .pixel-btn:active { transform: translateY(2px); }
+
+    /* SANCTUARY */
+    #sanctuary-screen { background: #1a3a1a; }
+    .sanctuary-header { background: #0d1b0d; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #3a6b3a; }
+    .header-title { font-size: 12px; color: #90ee90; letter-spacing: 1px; white-space: nowrap; }
+    .exp-bar-wrap { flex: 1; margin: 0 8px; min-width: 0; }
+    .exp-label { font-size: 9px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .exp-bar { height: 12px; background: #333; border: 2px solid #555; position: relative; overflow: hidden; }
+    .exp-fill { height: 100%; background: #ffd700; transition: width 0.5s; }
+    .exp-text { font-size: 9px; color: #ffd700; margin-top: 1px; }
+
+    /* SANCTUARY BG */
+    .sanctuary-bg { position: relative; width: 100%; height: 280px; background: #2d5a1b; overflow: hidden; flex-shrink: 0; }
+    .sky { position: absolute; top: 0; left: 0; width: 100%; height: 100px; background: #1a6ba0; }
+    .ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 120px; background: #3a7a1a; }
+    .ground-stripe { position: absolute; bottom: 80px; left: 0; width: 100%; height: 20px; background: #4a9a2a; }
+    .pond { position: absolute; bottom: 40px; right: 20px; width: 80px; height: 40px; background: #1a6ba0; border-radius: 40px; border: 3px solid #0d4a7a; }
+    .pixel-animal-placed { position: absolute; cursor: pointer; font-size: 20px; transition: transform 0.2s; -webkit-tap-highlight-color: transparent; }
+    .pixel-animal-placed:active { transform: scale(1.2); }
+
+    /* COLLECTION */
+    #collection-screen { background: #0d1b2e; }
+    .coll-header { background: #0a1220; padding: 10px; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid #1a4a8a; }
+    .coll-title { font-size: 14px; color: #4a9aff; flex: 1; }
+    .animal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; overflow-y: auto; flex: 1; }
+    .animal-card { background: #0d2a0d; border: 2px solid #1a4a1a; padding: 8px 4px; text-align: center; cursor: pointer; border-radius: 4px; position: relative; -webkit-tap-highlight-color: transparent; }
+    .animal-card.unlocked { border-color: #3a8a3a; background: #0d3a1a; }
+    .animal-card.unlocked:active { transform: scale(0.95); }
+    .animal-card.locked { opacity: 0.45; cursor: default; border-color: #333; }
+    .animal-emoji { font-size: 28px; display: block; }
+    .animal-name { font-size: 9px; color: #90ee90; margin-top: 4px; letter-spacing: 1px; }
+    .animal-card.locked .animal-name { color: #555; }
+    .heart-bar { display: flex; justify-content: center; gap: 2px; margin-top: 4px; }
+    .heart { font-size: 9px; }
+    .next-badge { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); background: #ffd700; color: #000; font-size: 8px; padding: 1px 4px; border-radius: 2px; white-space: nowrap; }
+
+    /* FEED */
+    #feed-screen { background: #0a1a0a; }
+    .feed-header { background: #060f06; padding: 10px; display: flex; align-items: center; gap: 10px; border-bottom: 3px solid #1a5a1a; }
+    .feed-animal-name { font-size: 14px; color: #90ee90; flex: 1; }
+    .feed-area { display: flex; flex-direction: column; align-items: center; padding: 16px 10px; gap: 12px; position: relative; overflow-y: auto; flex: 1; }
+    .feed-animal-display { font-size: 72px; line-height: 1; position: relative; }
+    .mood-bubble { position: absolute; top: -20px; right: -20px; font-size: 18px; animation: bounce 1s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .care-bar { height: 16px; background: #1a2a1a; border: 2px solid #3a5a3a; position: relative; }
+    .care-fill { height: 100%; background: #ff6b9d; transition: width 0.3s; }
+    .care-label { font-size: 10px; color: #aaa; margin-bottom: 4px; }
+    .food-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+    .food-btn { background: #1a2a1a; border: 3px solid #2a5a2a; font-size: 28px; padding: 14px 0; cursor: pointer; text-align: center; border-radius: 4px; -webkit-tap-highlight-color: transparent; }
+    .food-btn:active { background: #2a4a2a; transform: scale(0.92); }
+    .food-name { font-size: 9px; color: #90ee90; margin-top: 4px; text-align: center; }
+    .stat-box { background: #0d2a0d; border: 2px solid #1a4a1a; padding: 8px; text-align: center; }
+    .stat-val { font-size: 18px; color: #90ee90; }
+    .stat-lbl { font-size: 9px; color: #666; }
+    .exp-gained { position: absolute; font-size: 18px; font-weight: bold; color: #ffd700; pointer-events: none; animation: floatUp 1s forwards; z-index: 100; }
+    @keyframes floatUp { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-50px)} }
+
+    /* NOTIFICATIONS */
+    .notif { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a4a1a; border: 2px solid #90ee90; color: #90ee90; font-size: 12px; padding: 8px 16px; z-index: 999; animation: slideIn 0.3s, fadeOut 0.5s 2s forwards; pointer-events: none; white-space: nowrap; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-50%) translateY(-20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+    @keyframes fadeOut { to{opacity:0} }
+    .unlock-notif { background: #4a3a00; border-color: #ffd700; color: #ffd700; }
+
+    /* NAV */
+    .nav-bar { display: flex; background: #0a1a0a; border-top: 3px solid #1a4a1a; }
+    .nav-btn { flex: 1; padding: 10px 4px; text-align: center; cursor: pointer; font-size: 9px; color: #555; letter-spacing: 1px; border: none; background: none; font-family: 'Courier New', monospace; -webkit-tap-highlight-color: transparent; }
+    .nav-btn.active, .nav-btn:hover { color: #90ee90; background: #0d2a0d; }
+    .nav-icon { font-size: 22px; display: block; margin-bottom: 2px; }
+    .back-btn { background: none; border: none; color: #4a9aff; font-size: 20px; cursor: pointer; padding: 4px 8px; -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body>
+<div id="game">
+
+  <!-- TITLE SCREEN -->
+  <div id="title-screen" class="screen active">
+    <div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;pointer-events:none">
+      <div style="position:absolute;top:15px;left:30px;font-size:30px;opacity:0.4">🌟</div>
+      <div style="position:absolute;top:40px;right:50px;font-size:24px;opacity:0.3">✨</div>
+      <div style="position:absolute;bottom:140px;left:20px;font-size:40px">🌳</div>
+      <div style="position:absolute;bottom:130px;right:30px;font-size:36px">🌲</div>
+      <div style="position:absolute;bottom:110px;left:80px;font-size:28px;opacity:0.6">🌿</div>
+      <div style="position:absolute;top:90px;left:50%;transform:translateX(-50%);font-size:72px">🏡</div>
+    </div>
+    <div style="z-index:1;text-align:center;padding:24px 20px">
+      <div class="title-logo">🌸 LILY'S<br>ANIMAL<br>SANCTUARY</div>
+      <div class="title-sub" style="margin-top:8px">COLLECTION GAME</div>
+      <div style="font-size:40px;margin:24px 0">🐶🐱🐰🦊🐻</div>
+      <div style="font-size:12px;color:#90ee90;margin-bottom:28px;line-height:2">
+        Collect animals, feed &amp; care for them<br>
+        Earn XP to unlock new friends!
+      </div>
+      <button class="pixel-btn" onclick="startGame()">▶ START GAME</button>
+      <div style="margin-top:24px;font-size:11px;color:#555">25 animals to discover!</div>
+    </div>
+  </div>
+
+  <!-- SANCTUARY SCREEN -->
+  <div id="sanctuary-screen" class="screen">
+    <div class="sanctuary-header">
+      <div class="header-title">🌸 LILY'S SANCTUARY</div>
+      <div class="exp-bar-wrap">
+        <div class="exp-label">LVL <span id="player-level">1</span> — <span id="exp-to-next-label">XP to next unlock</span></div>
+        <div class="exp-bar"><div class="exp-fill" id="exp-fill" style="width:0%"></div></div>
+        <div class="exp-text" id="exp-text">0 / 100 XP</div>
+      </div>
+    </div>
+    <div class="sanctuary-bg" id="sanctuary-bg">
+      <div class="sky"></div>
+      <div style="position:absolute;top:15px;left:30px;width:60px;height:24px;background:#fff;opacity:0.85;border-radius:12px"></div>
+      <div style="position:absolute;top:10px;left:70px;width:40px;height:18px;background:#fff;opacity:0.7;border-radius:9px"></div>
+      <div style="position:absolute;top:18px;right:60px;width:50px;height:20px;background:#fff;opacity:0.8;border-radius:10px"></div>
+      <div class="ground"></div>
+      <div class="ground-stripe"></div>
+      <div class="pond"></div>
+      <div style="position:absolute;bottom:95px;left:10px;font-size:36px">🌳</div>
+      <div style="position:absolute;bottom:90px;right:10px;font-size:32px">🌲</div>
+      <div style="position:absolute;bottom:85px;left:120px;font-size:24px;opacity:0.7">🌿</div>
+      <div style="position:absolute;bottom:100px;right:80px;font-size:20px;opacity:0.6">🌾</div>
+      <div style="position:absolute;top:60px;right:30px;font-size:18px;opacity:0.8">☀️</div>
+      <div id="placed-animals"></div>
+    </div>
+    <div style="padding:8px 10px;background:#0d2a0d;border-bottom:2px solid #1a4a1a;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:10px;color:#90ee90">🐾 Collected: <span id="collected-count">1</span> / 25</div>
+      <div style="font-size:10px;color:#ffd700">⭐ Total XP: <span id="total-xp-display">0</span></div>
+    </div>
+    <div style="padding:8px 10px;background:#0a1a0a;flex:1;overflow-y:auto">
+      <div style="font-size:10px;color:#555;margin-bottom:6px;letter-spacing:1px">RECENT ANIMALS — TAP TO FEED!</div>
+      <div id="recent-animals" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div class="nav-bar">
+      <button class="nav-btn active" onclick="showScreen('sanctuary')"><span class="nav-icon">🏡</span>HOME</button>
+      <button class="nav-btn" onclick="showScreen('collection')"><span class="nav-icon">📋</span>COLLECT</button>
+      <button class="nav-btn" onclick="showScreen('shop')"><span class="nav-icon">🍎</span>FEED</button>
+    </div>
+  </div>
+
+  <!-- COLLECTION SCREEN -->
+  <div id="collection-screen" class="screen">
+    <div class="coll-header">
+      <button class="back-btn" onclick="showScreen('sanctuary')">◀</button>
+      <div class="coll-title">📋 ANIMAL COLLECTION</div>
+      <div style="font-size:10px;color:#ffd700"><span id="coll-count">1</span>/25</div>
+    </div>
+    <div class="animal-grid" id="animal-grid"></div>
+    <div class="nav-bar">
+      <button class="nav-btn" onclick="showScreen('sanctuary')"><span class="nav-icon">🏡</span>HOME</button>
+      <button class="nav-btn active" onclick="showScreen('collection')"><span class="nav-icon">📋</span>COLLECT</button>
+      <button class="nav-btn" onclick="showScreen('shop')"><span class="nav-icon">🍎</span>FEED</button>
+    </div>
+  </div>
+
+  <!-- FEED SCREEN -->
+  <div id="feed-screen" class="screen">
+    <div class="feed-header">
+      <button class="back-btn" onclick="showScreen('sanctuary')">◀</button>
+      <div class="feed-animal-name" id="feed-animal-name">Select an animal</div>
+      <div style="font-size:10px;color:#ff6b9d">❤️ <span id="feed-hearts">0</span> hearts</div>
+    </div>
+    <div class="feed-area">
+      <div style="position:relative">
+        <div class="feed-animal-display" id="feed-animal-emoji">🐶</div>
+        <div class="mood-bubble" id="mood-bubble">😊</div>
+      </div>
+      <div style="width:100%">
+        <div style="display:flex;gap:8px;width:100%;margin-bottom:8px">
+          <div style="flex:1">
+            <div class="care-label">❤️ Happiness</div>
+            <div class="care-bar"><div class="care-fill" id="happy-fill" style="width:50%"></div></div>
+          </div>
+          <div style="flex:1">
+            <div class="care-label">⭐ Hunger</div>
+            <div class="care-bar"><div class="care-fill" id="hunger-fill" style="width:70%;background:#ffd700"></div></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%">
+        <div class="stat-box"><div class="stat-val" id="stat-level">1</div><div class="stat-lbl">LEVEL</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-xp">0</div><div class="stat-lbl">XP GIVEN</div></div>
+      </div>
+      <div style="font-size:10px;color:#555;width:100%;letter-spacing:1px">CHOOSE FOOD TO FEED:</div>
+      <div class="food-grid">
+        <div><div class="food-btn" onclick="feedAnimal('🍎',10)">🍎</div><div class="food-name">APPLE<br>+10 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🥕',15)">🥕</div><div class="food-name">CARROT<br>+15 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🍖',20)">🍖</div><div class="food-name">BONE<br>+20 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🍪',25)">🍪</div><div class="food-name">TREAT<br>+25 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🌿',12)">🌿</div><div class="food-name">GRASS<br>+12 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🐟',18)">🐟</div><div class="food-name">FISH<br>+18 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🍓',22)">🍓</div><div class="food-name">BERRY<br>+22 XP</div></div>
+        <div><div class="food-btn" onclick="feedAnimal('🌟',30)">🌟</div><div class="food-name">STAR<br>+30 XP</div></div>
+      </div>
+      <div style="font-size:10px;color:#555;text-align:center">Feeding gives XP → unlocks next animal!</div>
+    </div>
+    <div class="nav-bar">
+      <button class="nav-btn" onclick="showScreen('sanctuary')"><span class="nav-icon">🏡</span>HOME</button>
+      <button class="nav-btn" onclick="showScreen('collection')"><span class="nav-icon">📋</span>COLLECT</button>
+      <button class="nav-btn active" onclick="showScreen('shop')"><span class="nav-icon">🍎</span>FEED</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ANIMALS = [
+  {id:0,  emoji:'🐶', name:'PUPPY',     xpNeeded:0},
+  {id:1,  emoji:'🐱', name:'KITTEN',    xpNeeded:100},
+  {id:2,  emoji:'🐰', name:'BUNNY',     xpNeeded:200},
+  {id:3,  emoji:'🦊', name:'FOX',       xpNeeded:350},
+  {id:4,  emoji:'🐻', name:'BEAR',      xpNeeded:500},
+  {id:5,  emoji:'🐼', name:'PANDA',     xpNeeded:700},
+  {id:6,  emoji:'🐨', name:'KOALA',     xpNeeded:950},
+  {id:7,  emoji:'🐯', name:'TIGER',     xpNeeded:1250},
+  {id:8,  emoji:'🦁', name:'LION',      xpNeeded:1600},
+  {id:9,  emoji:'🐮', name:'COW',       xpNeeded:2000},
+  {id:10, emoji:'🐷', name:'PIG',       xpNeeded:2450},
+  {id:11, emoji:'🐸', name:'FROG',      xpNeeded:2950},
+  {id:12, emoji:'🐧', name:'PENGUIN',   xpNeeded:3500},
+  {id:13, emoji:'🦜', name:'PARROT',    xpNeeded:4100},
+  {id:14, emoji:'🦦', name:'OTTER',     xpNeeded:4800},
+  {id:15, emoji:'🦔', name:'HEDGEHOG',  xpNeeded:5600},
+  {id:16, emoji:'🦘', name:'KANGAROO',  xpNeeded:6500},
+  {id:17, emoji:'🦒', name:'GIRAFFE',   xpNeeded:7500},
+  {id:18, emoji:'🐘', name:'ELEPHANT',  xpNeeded:8600},
+  {id:19, emoji:'🦓', name:'ZEBRA',     xpNeeded:9800},
+  {id:20, emoji:'🐊', name:'CROC',      xpNeeded:11200},
+  {id:21, emoji:'🦋', name:'BUTTERFLY', xpNeeded:12700},
+  {id:22, emoji:'🐉', name:'DRAGON',    xpNeeded:14500},
+  {id:23, emoji:'🦄', name:'UNICORN',   xpNeeded:16500},
+  {id:24, emoji:'🐲', name:'WYRM',      xpNeeded:19000},
+];
+
+const POSITIONS = [
+  {x:40,y:170},{x:110,y:200},{x:180,y:175},{x:250,y:195},{x:310,y:180},
+  {x:60,y:215},{x:140,y:230},{x:220,y:220},{x:290,y:215},{x:350,y:205},
+  {x:20,y:235},{x:100,y:245},{x:170,y:240},{x:240,y:238},{x:330,y:235},
+  {x:80,y:255},{x:200,y:252},{x:310,y:250},{x:50,y:260},{x:260,y:258},
+  {x:120,y:262},{x:190,y:265},{x:280,y:264},{x:340,y:260},{x:155,y:268}
+];
+
+let state = {
+  totalXp: 0,
+  unlockedCount: 1,
+  currentFeedAnimal: 0,
+  animals: ANIMALS.map((a, i) => ({
+    ...a,
+    unlocked: i === 0,
+    hearts: i === 0 ? 3 : 0,
+    happiness: 50,
+    hunger: 70,
+    xpContributed: 0,
+    level: 1,
+    placed: i === 0
+  }))
+};
+
+// --- Save/Load with localStorage ---
+function saveState() {
+  try { localStorage.setItem('lilys_sanctuary', JSON.stringify(state)); } catch(e) {}
+}
+function loadState() {
+  try {
+    const saved = localStorage.getItem('lilys_sanctuary');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge saved data onto fresh state to handle new animals added later
+      parsed.animals.forEach((sa, i) => {
+        if (state.animals[i]) Object.assign(state.animals[i], sa);
+      });
+      state.totalXp = parsed.totalXp || 0;
+      state.unlockedCount = parsed.unlockedCount || 1;
+    }
+  } catch(e) {}
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(name + '-screen').classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const screens = ['sanctuary','collection','shop'];
+  const idx = screens.indexOf(name);
+  if (idx !== -1) {
+    document.querySelectorAll('.nav-btn').forEach((b, i) => {
+      if (i % 3 === idx) b.classList.add('active');
+    });
+  }
+  if (name === 'collection') renderCollection();
+  if (name === 'sanctuary') renderSanctuary();
+}
+
+function startGame() {
+  loadState();
+  document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('sanctuary-screen').classList.add('active');
+  renderSanctuary();
+  updateExpBar();
+}
+
+function renderSanctuary() {
+  const placed = document.getElementById('placed-animals');
+  placed.innerHTML = '';
+  state.animals.forEach((a, i) => {
+    if (!a.unlocked) return;
+    const pos = POSITIONS[i] || {x: 30 + (i % 5) * 60, y: 200};
+    const div = document.createElement('div');
+    div.className = 'pixel-animal-placed';
+    div.style.left = pos.x + 'px';
+    div.style.top  = pos.y + 'px';
+    div.textContent = a.emoji;
+    div.title = a.name;
+    div.onclick = () => openFeed(i);
+    placed.appendChild(div);
+  });
+  document.getElementById('collected-count').textContent = state.unlockedCount;
+  document.getElementById('total-xp-display').textContent = state.totalXp;
+  document.getElementById('coll-count').textContent = state.unlockedCount;
+  renderRecentAnimals();
+  updateExpBar();
+}
+
+function renderRecentAnimals() {
+  const cont = document.getElementById('recent-animals');
+  cont.innerHTML = '';
+  state.animals.filter(a => a.unlocked).slice(-8).reverse().forEach(a => {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'background:#0d2a0d;border:2px solid #2a5a2a;font-size:24px;padding:8px 10px;cursor:pointer;border-radius:4px;display:flex;flex-direction:column;align-items:center;-webkit-tap-highlight-color:transparent;';
+    btn.innerHTML = a.emoji + '<span style="font-size:8px;color:#90ee90;margin-top:2px">' + a.name + '</span>';
+    btn.onclick = () => openFeed(a.id);
+    cont.appendChild(btn);
+  });
+}
+
+function updateExpBar() {
+  const next = state.animals.find(a => !a.unlocked);
+  if (!next) {
+    document.getElementById('exp-fill').style.width = '100%';
+    document.getElementById('exp-text').textContent = 'ALL UNLOCKED! 🎉';
+    document.getElementById('exp-to-next-label').textContent = 'Complete!';
+    return;
+  }
+  const prevXp = state.unlockedCount > 1 ? ANIMALS[state.unlockedCount - 1].xpNeeded : 0;
+  const range   = next.xpNeeded - prevXp;
+  const progress = Math.max(0, state.totalXp - prevXp);
+  const pct = Math.min(100, Math.round((progress / range) * 100));
+  document.getElementById('exp-fill').style.width = pct + '%';
+  document.getElementById('exp-text').textContent = state.totalXp + ' / ' + next.xpNeeded + ' XP';
+  document.getElementById('exp-to-next-label').textContent = 'Next: ' + next.name;
+  document.getElementById('player-level').textContent = state.unlockedCount;
+}
+
+function renderCollection() {
+  const grid = document.getElementById('animal-grid');
+  grid.innerHTML = '';
+  document.getElementById('coll-count').textContent = state.unlockedCount;
+  state.animals.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'animal-card ' + (a.unlocked ? 'unlocked' : 'locked');
+    const isNext = !a.unlocked && state.animals[i - 1]?.unlocked;
+    let hh = '';
+    if (a.unlocked) for (let h = 0; h < 5; h++) hh += '<span class="heart">' + (h < a.hearts ? '❤️' : '🖤') + '</span>';
+    card.innerHTML =
+      (isNext ? '<div class="next-badge">NEXT!</div>' : '') +
+      (!a.unlocked ? '<div style="position:absolute;top:2px;right:4px;font-size:10px">🔒</div>' : '') +
+      '<span class="animal-emoji">' + (a.unlocked ? a.emoji : '❓') + '</span>' +
+      '<div class="animal-name">' + a.name + '</div>' +
+      (a.unlocked ? '<div class="heart-bar">' + hh + '</div>' : '') +
+      (isNext ? '<div style="font-size:8px;color:#ffd700;margin-top:2px">' + a.xpNeeded + ' XP</div>' : '');
+    if (a.unlocked) card.onclick = () => openFeed(i);
+    grid.appendChild(card);
+  });
+}
+
+function openFeed(idx) {
+  state.currentFeedAnimal = idx;
+  const a = state.animals[idx];
+  document.getElementById('feed-animal-name').textContent = a.emoji + ' ' + a.name;
+  document.getElementById('feed-animal-emoji').textContent = a.emoji;
+  document.getElementById('feed-hearts').textContent = a.hearts;
+  document.getElementById('stat-level').textContent = a.level;
+  document.getElementById('stat-xp').textContent = a.xpContributed;
+  updateFeedBars();
+  showScreen('shop');
+}
+
+function updateFeedBars() {
+  const a = state.animals[state.currentFeedAnimal];
+  document.getElementById('happy-fill').style.width  = a.happiness + '%';
+  document.getElementById('hunger-fill').style.width = a.hunger + '%';
+  const mood = a.happiness >= 80 ? '😍' : a.happiness >= 50 ? '😊' : a.happiness >= 25 ? '😐' : '😢';
+  document.getElementById('mood-bubble').textContent = mood;
+}
+
+function feedAnimal(food, xp) {
+  const a = state.animals[state.currentFeedAnimal];
+  a.happiness = Math.min(100, a.happiness + 15);
+  a.hunger    = Math.min(100, a.hunger + 20);
+  a.xpContributed += xp;
+  a.hearts = Math.min(5, Math.floor(a.xpContributed / 50));
+  if (a.xpContributed >= 100 * a.level) a.level++;
+  state.totalXp += xp;
+  document.getElementById('feed-hearts').textContent = a.hearts;
+  document.getElementById('stat-level').textContent  = a.level;
+  document.getElementById('stat-xp').textContent     = a.xpContributed;
+  updateFeedBars();
+  updateExpBar();
+  showFloating('+' + xp + ' XP ⭐');
+  checkUnlocks();
+  document.getElementById('collected-count').textContent  = state.unlockedCount;
+  document.getElementById('total-xp-display').textContent = state.totalXp;
+  saveState();
+}
+
+function showFloating(txt) {
+  const area = document.querySelector('#feed-screen .feed-area');
+  const el = document.createElement('div');
+  el.className = 'exp-gained';
+  el.textContent = txt;
+  el.style.cssText = 'top:80px;left:50%;transform:translateX(-50%);';
+  area.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function checkUnlocks() {
+  let changed = false;
+  state.animals.forEach(a => {
+    if (!a.unlocked && state.totalXp >= a.xpNeeded) {
+      a.unlocked = true;
+      a.placed   = true;
+      state.unlockedCount++;
+      changed = true;
+      setTimeout(() => showNotif('🎉 NEW ANIMAL: ' + a.emoji + ' ' + a.name + '!', true), 300);
+    }
+  });
+  if (changed) renderSanctuary();
+}
+
+function showNotif(msg, isUnlock) {
+  const el = document.createElement('div');
+  el.className = 'notif' + (isUnlock ? ' unlock-notif' : '');
+  el.textContent = msg;
+  document.getElementById('game').appendChild(el);
+  setTimeout(() => el.remove(), 2700);
+}
+</script>
+</body>
+</html>
